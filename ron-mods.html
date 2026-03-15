@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ready or Not — MODS</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0e;
+    --surface: #0f1117;
+    --border: #1e2230;
+    --accent: #e8c97a;
+    --accent2: #5b8dee;
+    --text: #c9cdd8;
+    --text-dim: #4a5068;
+    --glow: rgba(232, 201, 122, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CUSTOM CURSOR */
+  #cursor {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(232,201,122,0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.12s ease, width 0.2s, height 0.2s, opacity 0.2s;
+  }
+  body:hover #cursor { opacity: 1; }
+
+  /* CANVAS BACKGROUND */
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* GRID OVERLAY */
+  .grid-overlay {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(30,34,48,0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,34,48,0.4) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* LAYOUT */
+  .wrapper {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 0 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .logo-main {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #fff;
+    line-height: 1;
+  }
+  .logo-main span { color: var(--accent); }
+
+  /* ADMIN BTN */
+  .admin-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 18px;
+    cursor: none;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .admin-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 16px var(--glow);
+  }
+
+  /* ADMIN PANEL */
+  .admin-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .admin-overlay.open { display: flex; }
+
+  .admin-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 460px;
+    padding: 32px;
+    position: relative;
+    animation: panelIn 0.25s ease;
+  }
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .admin-panel h2 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .admin-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 20px;
+    cursor: none;
+    transition: color 0.2s;
+  }
+  .admin-close:hover { color: var(--accent); }
+
+  .field {
+    margin-bottom: 16px;
+  }
+  .field label {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: none;
+  }
+  .field input:focus { border-color: var(--accent); }
+
+  .admin-auth-section { margin-bottom: 28px; }
+  .admin-form-section { display: none; }
+  .admin-form-section.visible { display: block; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #0a0b0e;
+    border: none;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: none;
+    font-weight: 700;
+    transition: opacity 0.2s, box-shadow 0.2s;
+  }
+  .btn-primary:hover {
+    opacity: 0.9;
+    box-shadow: 0 0 24px var(--glow);
+  }
+
+  .error-msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: #e87a7a;
+    margin-top: 8px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* MODS LIST */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin: 48px 0 24px;
+  }
+  .section-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .mod-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .mods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mod-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    animation: slideIn 0.35s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+  .mod-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform 0.2s;
+  }
+  .mod-card:hover { border-color: rgba(232,201,122,0.3); transform: translateX(4px); }
+  .mod-card:hover::before { transform: scaleY(1); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .mod-info { flex: 1; }
+  .mod-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .mod-meta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .mod-meta .new-badge {
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 10px;
+  }
+
+  .download-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: none;
+    white-space: nowrap;
+  }
+  .download-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 16px var(--glow);
+  }
+  .download-btn svg {
+    width: 14px; height: 14px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 0;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    display: none;
+  }
+  .empty-state.show { display: block; }
+
+  /* FOOTER */
+  footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    text-align: center;
+    padding: 16px;
+    z-index: 3;
+    background: linear-gradient(transparent, var(--bg) 60%);
+  }
+  .footer-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+  #typing-text { color: var(--text); }
+  .cursor-blink {
+    animation: blink 0.8s step-end infinite;
+    color: var(--accent);
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="grid-overlay"></div>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ADMIN OVERLAY -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-panel">
+    <button class="admin-close" id="adminClose">✕</button>
+    <h2>// Admin Panel</h2>
+
+    <div class="admin-auth-section" id="authSection">
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="adminPass" placeholder="Enter password..." autocomplete="off">
+      </div>
+      <div class="error-msg" id="authError">Incorrect password.</div>
+      <button class="btn-primary" id="authBtn">Unlock</button>
+    </div>
+
+    <div class="admin-form-section" id="formSection">
+      <div class="field">
+        <label>Mod Title</label>
+        <input type="text" id="modTitle" placeholder="e.g. Ultra Graphics Pack v2">
+      </div>
+      <div class="field">
+        <label>Download Link</label>
+        <input type="url" id="modLink" placeholder="https://...">
+      </div>
+      <button class="btn-primary" id="addModBtn">Add Mod</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      <span class="logo-sub">Modding Community</span>
+      <div class="logo-main">Ready or Not <span>MODS</span></div>
+    </div>
+    <button class="admin-btn" id="openAdmin">[ ADMIN ]</button>
+  </header>
+
+  <div class="section-header">
+    <span class="section-title">Downloads</span>
+    <div class="section-line"></div>
+    <span class="mod-count" id="modCount">0 mods</span>
+  </div>
+
+  <div class="mods-list" id="modsList"></div>
+  <div class="empty-state show" id="emptyState">// No mods uploaded yet.</div>
+</div>
+
+<footer>
+  <div class="footer-text"><span id="typing-text"></span><span class="cursor-blink">|</span></div>
+</footer>
+
+<script>
+// ── CURSOR ──────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+(function animCursor() {
+  rx += (mx - rx) * 0.18;
+  ry += (my - ry) *.18;
+  cursor.style.left = mx + 'px';
+  cursor.style.top  = my + 'px';
+  ring.style.left   = rx + 'px';
+  ring.style.top    = ry + 'px';
+  requestAnimationFrame(animCursor);
+})();
+
+// ── CANVAS PARTICLES ────────────────────────────────────
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], mouseX = 0, mouseY = 0;
+
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+for (let i = 0; i < 80; i++) {
+  particles.push({
+    x: Math.random() * innerWidth,
+    y: Math.random() * innerHeight,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    r: Math.random() * 1.5 + 0.3,
+    a: Math.random() * 0.5 + 0.1,
+  });
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => {
+    // mouse repel
+    const dx = p.x - mouseX, dy = p.y - mouseY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 120) {
+      p.vx += dx / dist * 0.04;
+      p.vy += dy / dist * 0.04;
+    }
+    p.vx *= 0.995; p.vy *= 0.995;
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(232,201,122,${p.a})`;
+    ctx.fill();
+  });
+  // connect nearby particles
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 100) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(91,141,238,${(1 - d/100) * 0.12})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ── TYPING ANIMATION ────────────────────────────────────
+const typingEl = document.getElementById('typing-text');
+const fullText = 'Made by Saft with 💖';
+let ti = 0;
+function type() {
+  if (ti <= fullText.length) {
+    typingEl.textContent = fullText.slice(0, ti++);
+    setTimeout(type, 80);
+  } else {
+    setTimeout(() => { ti = 0; typingEl.textContent = ''; setTimeout(type, 400); }, 3000);
+  }
+}
+setTimeout(type, 800);
+
+// ── MODS STORAGE ────────────────────────────────────────
+let mods = JSON.parse(localStorage.getItem('ron_mods') || '[]');
+
+function saveMods() { localStorage.setItem('ron_mods', JSON.stringify(mods)); }
+
+function renderMods() {
+  const list = document.getElementById('modsList');
+  const empty = document.getElementById('emptyState');
+  const count = document.getElementById('modCount');
+  list.innerHTML = '';
+  count.textContent = mods.length + ' mod' + (mods.length !== 1 ? 's' : '');
+  if (!mods.length) { empty.classList.add('show'); return; }
+  empty.classList.remove('show');
+  mods.forEach((mod, i) => {
+    const card = document.createElement('div');
+    card.className = 'mod-card';
+    card.style.animationDelay = (i * 0.06) + 's';
+    card.innerHTML = `
+      <div class="mod-info">
+        <div class="mod-title">${escHtml(mod.title)}</div>
+        <div class="mod-meta">${i === 0 ? '<span class="new-badge">// NEW</span>' : ''}Added ${mod.date}</div>
+      </div>
+      <a class="download-btn" href="${escHtml(mod.link)}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 12l-4-4h2.5V2h3v6H12L8 12zm-6 2h12v1.5H2V14z"/></svg>
+        Download
+      </a>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+renderMods();
+
+// ── ADMIN PANEL ─────────────────────────────────────────
+const overlay   = document.getElementById('adminOverlay');
+const authSec   = document.getElementById('authSection');
+const formSec   = document.getElementById('formSection');
+const passInput = document.getElementById('adminPass');
+const authErr   = document.getElementById('authError');
+let unlocked = false;
+
+document.getElementById('openAdmin').onclick = () => {
+  overlay.classList.add('open');
+  if (!unlocked) passInput.focus();
+};
+document.getElementById('adminClose').onclick = closePanel;
+overlay.addEventListener('click', e => { if (e.target === overlay) closePanel(); });
+
+function closePanel() {
+  overlay.classList.remove('open');
+  authErr.classList.remove('show');
+  if (!unlocked) passInput.value = '';
+}
+
+document.getElementById('authBtn').onclick = tryAuth;
+passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryAuth(); });
+
+function tryAuth() {
+  if (passInput.value === 'bajram') {
+    unlocked = true;
+    authSec.style.display = 'none';
+    formSec.classList.add('visible');
+    authErr.classList.remove('show');
+  } else {
+    authErr.classList.add('show');
+    passInput.value = '';
+    passInput.focus();
+  }
+}
+
+document.getElementById('addModBtn').onclick = () => {
+  const title = document.getElementById('modTitle').value.trim();
+  const link  = document.getElementById('modLink').value.trim();
+  if (!title || !link) return;
+  const now = new Date();
+  mods.unshift({
+    title,
+    link,
+    date: now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }),
+  });
+  saveMods();
+  renderMods();
+  document.getElementById('modTitle').value = '';
+  document.getElementById('modLink').value  = '';
+  closePanel();
+};
+</script>
+</body>
+</html>
